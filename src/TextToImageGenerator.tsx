@@ -27,7 +27,7 @@ import {
   Move3D,
 } from "lucide-react";
 import { FONT_FAMILIES, DEFAULT_STATE } from "./constants";
-import type { PRESET_THEMES } from "./constants";
+// import type { PRESET_THEMES } from "./constants";
 import type { Theme, State } from "./constants";
 import { useCanvas, downloadBlob } from "./utils";
 import type { CanvasDimensions } from "./utils";

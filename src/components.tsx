@@ -1,15 +1,15 @@
 import type { ReactNode } from "react";
 import {
-  Bold,
-  Italic,
-  Underline,
-  Type,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
+  // Bold,
+  // Italic,
+  // Underline,
+  // Type,
+  // AlignLeft,
+  // AlignCenter,
+  // AlignRight,
   Palette,
-  Move3D,
-  Sparkles,
+  // Move3D,
+  // Sparkles,
 } from "lucide-react";
 import { PRESET_THEMES, type Theme } from "./constants";
 
