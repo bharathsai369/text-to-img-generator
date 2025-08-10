@@ -1,390 +1,50 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef } from "react";
+import type { CSSProperties } from "react";
 import {
-  Bold,
-  Italic,
-  Underline,
   Type,
   Download,
   FileImage,
   FileText,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
   RotateCcw,
   Eye,
   Settings,
   Zap,
+  Sparkles,
+  Bold,
+  Italic,
+  Underline,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
   Palette,
   Move3D,
-  Sparkles,
 } from "lucide-react";
+import { FONT_FAMILIES, DEFAULT_STATE } from "./constants";
+import type { PRESET_THEMES } from "./constants";
+import type { Theme, State } from "./constants";
+import { useCanvas, downloadBlob } from "./utils";
+import type { CanvasDimensions } from "./utils";
+import {
+  ToolbarButton,
+  ControlGroup,
+  SliderControl,
+  ColorControl,
+  ThemeSelector,
+} from "./components";
 
-// Enhanced constants
-const FONT_FAMILIES = [
-  "Inter",
-  "Roboto",
-  "Open Sans",
-  "Lato",
-  "Montserrat",
-  "Poppins",
-  "Arial",
-  "Helvetica",
-  "Times New Roman",
-  "Georgia",
-  "Courier New",
-  "Verdana",
-  "Comic Sans MS",
-  "Impact",
-];
-
-const PRESET_THEMES = {
-  minimal: { bg: "#ffffff", text: "#1f2937", font: "Inter", name: "Minimal" },
-  dark: { bg: "#111827", text: "#f9fafb", font: "Inter", name: "Dark Mode" },
-  ocean: { bg: "#0f172a", text: "#0ea5e9", font: "Roboto", name: "Ocean" },
-  sunset: { bg: "#fef3c7", text: "#dc2626", font: "Georgia", name: "Sunset" },
-  forest: {
-    bg: "#064e3b",
-    text: "#6ee7b7",
-    font: "Montserrat",
-    name: "Forest",
-  },
-  vintage: { bg: "#f5f5dc", text: "#8b4513", font: "Georgia", name: "Vintage" },
-  neon: { bg: "#0a0a0a", text: "#00ff88", font: "Courier New", name: "Neon" },
-  pastel: { bg: "#fdf2f8", text: "#be185d", font: "Poppins", name: "Pastel" },
-};
-
-const DEFAULT_STATE = {
-  content:
-    "Welcome to the Enhanced Text to Image Generator!\n\nCreate stunning visual content from your text with professional styling options.\n\n✨ Choose from beautiful themes\n🎨 Customize colors and fonts\n📱 Perfect for social media\n💼 Great for presentations",
-  fontSize: 20,
-  fontFamily: "Inter",
-  textColor: "#1f2937",
-  backgroundColor: "#ffffff",
-  textAlign: "left",
-  padding: 32,
-  maxWidth: 800,
-  lineHeight: 1.6,
-  letterSpacing: 0,
-  isBold: false,
-  isItalic: false,
-  isUnderline: false,
-  borderRadius: 0,
-  shadow: false,
-};
-
-// Enhanced canvas hook
-const useCanvas = () => {
-  const canvasRef = useRef(null);
-
-  const generateCanvas = useCallback((text, styles, dimensions) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return null;
-
-    const ctx = canvas.getContext("2d");
-    const { maxWidth, padding, fontSize, lineHeight } = dimensions;
-    const {
-      fontFamily,
-      textColor,
-      backgroundColor,
-      textAlign,
-      isBold,
-      isItalic,
-      letterSpacing,
-      borderRadius,
-      shadow,
-    } = styles;
-
-    let fontStyle = "";
-    if (isBold && isItalic) fontStyle = "bold italic";
-    else if (isBold) fontStyle = "bold";
-    else if (isItalic) fontStyle = "italic";
-
-    ctx.font = `${fontStyle} ${fontSize}px ${fontFamily}`;
-    ctx.letterSpacing = `${letterSpacing}px`;
-
-    const textWidth = maxWidth - padding * 2;
-    const lineHeightPx = fontSize * lineHeight;
-    const lines = wrapText(ctx, text, textWidth);
-
-    const canvasHeight = lines.length * lineHeightPx + padding * 2 + 40;
-
-    canvas.width = maxWidth;
-    canvas.height = canvasHeight;
-
-    // Clear canvas
-    ctx.clearRect(0, 0, maxWidth, canvasHeight);
-
-    // Add shadow if enabled
-    if (shadow) {
-      ctx.shadowColor = "rgba(0, 0, 0, 0.1)";
-      ctx.shadowBlur = 20;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 4;
-    }
-
-    // Draw background with border radius
-    if (borderRadius > 0) {
-      drawRoundedRect(
-        ctx,
-        0,
-        0,
-        maxWidth,
-        canvasHeight,
-        borderRadius,
-        backgroundColor
-      );
-    } else {
-      ctx.fillStyle = backgroundColor;
-      ctx.fillRect(0, 0, maxWidth, canvasHeight);
-    }
-
-    // Reset shadow for text
-    ctx.shadowColor = "transparent";
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-
-    // Draw text
-    ctx.font = `${fontStyle} ${fontSize}px ${fontFamily}`;
-    ctx.letterSpacing = `${letterSpacing}px`;
-    ctx.fillStyle = textColor;
-    ctx.textAlign = textAlign;
-
-    const startY = padding + fontSize;
-    let textX = getTextX(textAlign, maxWidth, padding);
-
-    lines.forEach((line, index) => {
-      const y = startY + index * lineHeightPx;
-      ctx.fillText(line.trim(), textX, y);
-
-      if (styles.isUnderline) {
-        drawUnderline(ctx, line.trim(), textX, y, textAlign, textColor);
-      }
-    });
-
-    return canvas;
-  }, []);
-
-  return { canvasRef, generateCanvas };
-};
-
-// Enhanced utility functions
-const wrapText = (ctx, text, maxWidth) => {
-  const paragraphs = text.split("\n");
-  const lines = [];
-
-  paragraphs.forEach((paragraph) => {
-    if (paragraph.trim() === "") {
-      lines.push("");
-      return;
-    }
-
-    const words = paragraph.split(" ");
-    let currentLine = "";
-
-    words.forEach((word) => {
-      const testLine = currentLine + (currentLine ? " " : "") + word;
-      const metrics = ctx.measureText(testLine);
-
-      if (metrics.width > maxWidth && currentLine !== "") {
-        lines.push(currentLine);
-        currentLine = word;
-      } else {
-        currentLine = testLine;
-      }
-    });
-
-    if (currentLine) {
-      lines.push(currentLine);
-    }
-  });
-
-  return lines;
-};
-
-const getTextX = (textAlign, maxWidth, padding) => {
-  switch (textAlign) {
-    case "center":
-      return maxWidth / 2;
-    case "right":
-      return maxWidth - padding;
-    default:
-      return padding;
-  }
-};
-
-const drawUnderline = (ctx, text, x, y, textAlign, color) => {
-  const metrics = ctx.measureText(text);
-  let underlineX = x;
-
-  if (textAlign === "center") {
-    underlineX = x - metrics.width / 2;
-  } else if (textAlign === "right") {
-    underlineX = x - metrics.width;
-  }
-
-  ctx.beginPath();
-  ctx.moveTo(underlineX, y + 3);
-  ctx.lineTo(underlineX + metrics.width, y + 3);
-  ctx.strokeStyle = color;
-  ctx.lineWidth = Math.max(
-    1,
-    Math.floor(metrics.actualBoundingBoxAscent * 0.1)
-  );
-  ctx.stroke();
-};
-
-const drawRoundedRect = (ctx, x, y, width, height, radius, fillColor) => {
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + width - radius, y);
-  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-  ctx.lineTo(x + width, y + height - radius);
-  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-  ctx.lineTo(x + radius, y + height);
-  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-  ctx.lineTo(x, y + radius);
-  ctx.quadraticCurveTo(x, y, x + radius, y);
-  ctx.closePath();
-  ctx.fillStyle = fillColor;
-  ctx.fill();
-};
-
-const downloadBlob = (blob, filename) => {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-};
-
-// Enhanced components
-const ToolbarButton = ({
-  active,
-  onClick,
-  children,
-  title,
-  variant = "default",
-}) => {
-  const baseClasses =
-    "p-2.5 rounded-xl transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500";
-
-  const variants = {
-    default: active
-      ? "bg-blue-500 text-white shadow-lg hover:bg-blue-600 transform hover:scale-105"
-      : "bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-800 border border-gray-200 hover:border-gray-300 shadow-sm",
-    theme:
-      "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 hover:border-blue-300 shadow-sm hover:shadow-md transform hover:scale-105",
-  };
-
-  return (
-    <button
-      onClick={onClick}
-      title={title}
-      className={`${baseClasses} ${variants[variant]}`}
-    >
-      {children}
-    </button>
-  );
-};
-
-const ControlGroup = ({ label, children, icon: Icon }) => (
-  <div className="space-y-3">
-    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 tracking-tight">
-      {Icon && <Icon size={16} className="text-gray-500" />}
-      {label}
-    </label>
-    {children}
-  </div>
-);
-
-const SliderControl = ({
-  value,
-  onChange,
-  min,
-  max,
-  label,
-  unit = "",
-  icon: Icon,
-}) => (
-  <ControlGroup label={label} icon={Icon}>
-    <div className="flex items-center space-x-3">
-      <input
-        type="range"
-        min={min}
-        max={max}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="flex-1 h-2 bg-gray-200 rounded-full cursor-pointer accent-blue-500 hover:accent-blue-600"
-      />
-      <span className="text-sm font-medium text-gray-800 min-w-[65px] bg-gray-50 px-3 py-1.5 rounded-lg border">
-        {value}
-        {unit}
-      </span>
-    </div>
-  </ControlGroup>
-);
-
-const ColorControl = ({ value, onChange, label, icon: Icon }) => (
-  <ControlGroup label={label} icon={Icon}>
-    <div className="flex items-center space-x-3">
-      <div className="relative">
-        <input
-          type="color"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-12 h-10 rounded-xl cursor-pointer opacity-0 absolute inset-0 z-10"
-        />
-        <div
-          className="w-12 h-10 rounded-xl border-2 border-gray-200 cursor-pointer hover:ring-2 hover:ring-blue-300 transition-all shadow-sm"
-          style={{ backgroundColor: value }}
-        />
-      </div>
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="flex-1 px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-800 bg-white"
-        placeholder="#000000"
-      />
-    </div>
-  </ControlGroup>
-);
-
-const ThemeSelector = ({ onThemeSelect }) => (
-  <ControlGroup label="Quick Themes" icon={Palette}>
-    <div className="grid grid-cols-2 gap-2">
-      {Object.entries(PRESET_THEMES).map(([key, theme]) => (
-        <button
-          key={key}
-          onClick={() => onThemeSelect(theme)}
-          className="p-3 rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all transform hover:scale-105 text-xs font-medium"
-          style={{ backgroundColor: theme.bg, color: theme.text }}
-        >
-          {theme.name}
-        </button>
-      ))}
-    </div>
-  </ControlGroup>
-);
-
-// Main Component
-const TextToImageGenerator = () => {
-  const [state, setState] = useState(DEFAULT_STATE);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
+const TextToImageGenerator: React.FC = () => {
+  const [state, setState] = useState<State>(DEFAULT_STATE);
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
   const { canvasRef, generateCanvas } = useCanvas();
-  const editorRef = useRef(null);
+  const editorRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const updateState = (updates) => {
+  const updateState = (updates: Partial<State>) => {
     setState((prev) => ({ ...prev, ...updates }));
   };
 
-  const handleFormat = (command) => {
-    const commands = {
+  const handleFormat = (command: string) => {
+    const commands: Record<string, () => void> = {
       bold: () => updateState({ isBold: !state.isBold }),
       italic: () => updateState({ isItalic: !state.isItalic }),
       underline: () => updateState({ isUnderline: !state.isUnderline }),
@@ -401,7 +61,7 @@ const TextToImageGenerator = () => {
     setState(DEFAULT_STATE);
   };
 
-  const applyTheme = (theme) => {
+  const applyTheme = (theme: Theme) => {
     updateState({
       backgroundColor: theme.bg,
       textColor: theme.text,
@@ -409,7 +69,7 @@ const TextToImageGenerator = () => {
     });
   };
 
-  const getPreviewStyle = () => ({
+  const getPreviewStyle = (): CSSProperties => ({
     fontFamily: state.fontFamily,
     fontSize: `${Math.max(14, state.fontSize * 0.7)}px`,
     color: state.textColor,
@@ -437,7 +97,7 @@ const TextToImageGenerator = () => {
     transition: "all 0.3s ease-in-out",
   });
 
-  const generateAndDownload = async (format) => {
+  const generateAndDownload = async (format: "png" | "jpeg") => {
     setIsGenerating(true);
     try {
       await new Promise((resolve) => setTimeout(resolve, 200));
@@ -447,7 +107,7 @@ const TextToImageGenerator = () => {
         padding: state.padding,
         fontSize: state.fontSize,
         lineHeight: state.lineHeight,
-      });
+      } as CanvasDimensions);
 
       if (!canvas) throw new Error("Canvas generation failed");
 
@@ -682,7 +342,7 @@ const TextToImageGenerator = () => {
               </div>
 
               {showAdvanced && (
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-200">
+                <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-4 mt-6 pt-6 border-t border-gray-200">
                   <SliderControl
                     label="Padding"
                     value={state.padding}
