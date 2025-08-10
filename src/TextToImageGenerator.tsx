@@ -1,3 +1,10 @@
+/**
+ * TextToImageGenerator Component
+ * 
+ * Main component that handles the text-to-image conversion functionality.
+ * Provides a rich text editor interface with live preview and export options.
+ */
+
 import React, { useState, useRef } from "react";
 import type { CSSProperties } from "react";
 import {
@@ -97,6 +104,10 @@ const TextToImageGenerator: React.FC = () => {
     transition: "all 0.3s ease-in-out",
   });
 
+  /**
+   * Generates a downloadable image from the current canvas state
+   * @param format - The desired image format ('png' or 'jpeg')
+   */
   const generateAndDownload = async (format: "png" | "jpeg") => {
     setIsGenerating(true);
     try {
