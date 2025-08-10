@@ -1,3 +1,8 @@
+/**
+ * Constants and types used throughout the application
+ * Includes theme definitions, default states, and configuration options
+ */
+
 interface Theme {
   bg: string;
   text: string;

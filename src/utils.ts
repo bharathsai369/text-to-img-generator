@@ -1,3 +1,7 @@
+/**
+ * Utility functions for canvas operations and image generation
+ */
+
 import { useRef, useCallback } from "react";
 import type { State } from "./constants";
 
@@ -17,6 +21,10 @@ interface CanvasHook {
   ) => HTMLCanvasElement | null;
 }
 
+/**
+ * Custom hook for canvas operations
+ * Provides canvas reference and generation functionality
+ */
 const useCanvas = (): CanvasHook => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -115,6 +123,13 @@ const useCanvas = (): CanvasHook => {
   return { canvasRef, generateCanvas };
 };
 
+/**
+ * Wraps text within specified width constraints
+ * @param ctx - Canvas rendering context
+ * @param text - Text to wrap
+ * @param maxWidth - Maximum width for text
+ * @returns Array of wrapped text lines
+ */
 const wrapText = (
   ctx: CanvasRenderingContext2D,
   text: string,
